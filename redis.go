@@ -1,7 +1,6 @@
 package distlock
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -28,10 +27,10 @@ type redisProvider struct {
 	pool Pool
 }
 
-func NewRedisProvider(redisPool Pool) Provider {
+func NewRedisProvider(redisPool Pool) (Provider, error) {
 	return &redisProvider{
 		pool: redisPool,
-	}
+	}, nil
 }
 
 func (p *redisProvider) Name() string {
@@ -57,7 +56,7 @@ func (p *redisProvider) Lock(lock LockInfo) error {
 		return nil
 	}
 
-	return errors.New("already locked")
+	return ErrAlreadyLocked
 }
 
 func (p *redisProvider) Unlock(lock LockInfo) error {
@@ -70,7 +69,7 @@ func (p *redisProvider) Unlock(lock LockInfo) error {
 		return fmt.Errorf("redis EVAL: %w", err)
 	}
 	if ret == 0 {
-		return errors.New("lock not found")
+		return ErrNotLocked
 	}
 	return nil
 }

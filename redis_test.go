@@ -18,65 +18,14 @@ func newRedisConnection() (conn redis.Conn, err error) {
 	)
 }
 
-func TestMutex(t *testing.T) {
-	var (
-		err error
-
-		redisPool = &redis.Pool{
-			MaxIdle: 10,
-			Dial:    newRedisConnection,
-		}
-
-		distlock = New(NewRedisProvider(redisPool), WithLockLifetime(1*time.Second))
-
-		m = distlock.New("johndoe", WithNamespace("questions"))
-	)
-
-	expectedMutexDisplayName := "Mutex(redis:questions:johndoe)"
-	gotMutexDisplayName := m.String()
-	if gotMutexDisplayName != expectedMutexDisplayName {
-		t.Errorf("Mutex display name incorrect. Expected: %s, got: %s",
-			expectedMutexDisplayName,
-			gotMutexDisplayName,
-		)
+var (
+	redisPool = &redis.Pool{
+		MaxIdle: 10,
+		Dial:    newRedisConnection,
 	}
+)
 
-	err = m.Lock()
-	if err != nil {
-		t.Errorf("Lock failed: name=%s, err=%v", m, err)
-	}
-	err = m.Unlock()
-	if err != nil {
-		t.Errorf("Unlock failed: name=%s, err=%v", m, err)
-	}
-
-	err = m.Lock()
-	if err != nil {
-		t.Errorf("Lock failed: name=%s, err=%v", m, err)
-	}
-
-	// Here unlock should fail because lock was released by lifetime.
-	time.Sleep(1100 * time.Millisecond)
-	err = m.Unlock()
-	if err == nil {
-		t.Errorf("unlock should fail")
-	}
-
-	m.Lock()
-	// Here lock should fail.
-	err = m.Lock()
-	if err == nil {
-		t.Errorf("lock should fail")
-	}
-	err = m.Unlock()
-	if err != nil {
-		t.Errorf("Unlock failed: name=%s, err=%v", m, err)
-	}
-
-	m.Lock()
-	m.(*mutex).id = "2814"
-	err = m.Unlock()
-	if err == nil {
-		t.Errorf("unlock should fail")
-	}
+func TestRedisProvider(t *testing.T) {
+	provider, _ := NewRedisProvider(redisPool)
+	runBasicLockTests(t, provider)
 }

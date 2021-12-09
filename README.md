@@ -8,7 +8,8 @@
 2. Auto/No expiration (auto-released after a specific time or never expire)
 3. Can work with multiple backends:
    - [x] Redis
-   - [] SQL databases (mysql, postgres, ...)
+   - [x] MySQL
+   - [ ] Postgres
 
 ## Usage
 
