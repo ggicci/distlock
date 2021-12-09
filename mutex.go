@@ -1,74 +1,81 @@
-package redis_mutex
+package distlock
 
 import (
 	"strconv"
 	"time"
-
-	"github.com/gomodule/redigo/redis"
-	"github.com/pkg/errors"
 )
 
-const (
-	unlockScript = `
-	if redis.call("GET", KEYS[1]) == ARGV[1] then
-		return redis.call("DEL", KEYS[1])
-	else
-		return 0
-	end
-	`
-)
-
-var (
-	// ErrLockFailed means failed to acquire the named lock.
-	ErrLockFailed = errors.New("already locked")
-
-	// ErrUnlockFailed means client not able to unlock because the lock is not owned by it.
-	ErrUnlockFailed = errors.New("no lock")
-)
-
-// Mutex is a mutex based on redis.
-type Mutex struct {
+type mutex struct {
+	ns             string // namespace, as prefix for the lock name
 	id             string
-	name           string
+	owner          string
 	acquireTimeout time.Duration
 	lifetime       time.Duration
-	pool           *redis.Pool
+
+	provider Provider
+}
+
+func (m *mutex) lockId() string {
+	return m.ns + ":" + m.id
+}
+
+func (m *mutex) GetLockId() string {
+	return m.lockId()
+}
+
+func (m *mutex) GetLockOwner() string {
+	return m.owner
+}
+
+func (m *mutex) GetAcquireTimeout() time.Duration {
+	return m.acquireTimeout
+}
+
+func (m *mutex) GetLifeTime() time.Duration {
+	return m.lifetime
 }
 
 // Option is an option for tweaking Mutex.
 type Option interface {
-	Apply(*Mutex)
+	Apply(*mutex)
 }
 
-// OptionFunc is a function that configures a Mutex.
-type OptionFunc func(*Mutex)
+type optionFunc func(*mutex)
 
 // Apply implements Option interface.
-func (f OptionFunc) Apply(m *Mutex) { f(m) }
+func (f optionFunc) Apply(m *mutex) { f(m) }
+
+// WithNamespace returns an option that configures Mutex.ns.
+func WithNamespace(ns string) Option {
+	return optionFunc(func(m *mutex) {
+		m.ns = ns
+	})
+}
 
 // WithAcquireTimeout returns an option that configures Mutex.acquireTimeout.
 func WithAcquireTimeout(timeout time.Duration) Option {
-	return OptionFunc(func(m *Mutex) {
+	return optionFunc(func(m *mutex) {
 		m.acquireTimeout = timeout
 	})
 }
 
 // WithLockLifetime returns an option that configures Mutex.lifetime.
 func WithLockLifetime(lifetime time.Duration) Option {
-	return OptionFunc(func(m *Mutex) {
+	return optionFunc(func(m *mutex) {
 		m.lifetime = lifetime
 	})
 }
 
 // NewMutex creates a new Mutex instance.
-func NewMutex(redisPool *redis.Pool, name string, opts ...Option) *Mutex {
-	m := &Mutex{
-		id:             strconv.FormatInt(time.Now().UnixNano(), 10),
-		name:           "mutex_" + name,
+func newMutex(provider Provider, id string, opts ...Option) Mutex {
+	m := &mutex{
+		id:             id,
 		acquireTimeout: time.Duration(0),
-		pool:           redisPool,
+		owner:          strconv.FormatInt(time.Now().UnixNano(), 10),
+		provider:       provider,
 	}
 
+	WithNamespace("default").Apply(m)
 	for _, opt := range opts {
 		opt.Apply(m)
 	}
@@ -76,44 +83,18 @@ func NewMutex(redisPool *redis.Pool, name string, opts ...Option) *Mutex {
 }
 
 // String implements print interface.
-func (m *Mutex) String() string {
-	return m.name + "#" + m.id
+func (m *mutex) String() string {
+	return "Mutex(" + m.provider.Name() + ":" + m.GetLockId() + ")"
 }
 
-// Lock locks the named resource.
-func (m *Mutex) Lock() error {
-	conn := m.pool.Get()
-	defer conn.Close()
-
-	// Set "mutex_xxx" key (the lock name).
-	// PX: Set the specified expire time, in milliseconds.
-	// NX: Only set the key if it does not already exist.
-	reply, err := conn.Do("SET", m.name, m.id, "PX", m.lifetime.Nanoseconds()/int64(time.Millisecond), "NX")
-	if err != nil {
-		return errors.WithMessage(err, "redis SET lock")
-	}
-	if v, ok := reply.(string); ok && v == "OK" {
-		return nil
-	}
-
-	return ErrLockFailed
+// Lock locks the named resourc
+func (m *mutex) Lock() error {
+	return m.provider.Lock(m)
 }
 
-// UnLock unlocks the named resource.
+// Unlock unlocks the named resource.
 // Attempts to remove the key so long as the value matches.
 // When the key not found or the value was incorrect, unlock will fail.
-func (m *Mutex) UnLock() error {
-	conn := m.pool.Get()
-	defer conn.Close()
-
-	command := redis.NewScript(1, unlockScript)
-	ret, err := redis.Int(command.Do(conn, m.name, m.id))
-	if err != nil {
-		return errors.WithMessage(err, "redis do unlock script")
-	}
-	if ret != 1 {
-		return ErrUnlockFailed
-	}
-
-	return nil
+func (m *mutex) Unlock() error {
+	return m.provider.Unlock(m)
 }
