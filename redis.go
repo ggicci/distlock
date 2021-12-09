@@ -21,11 +21,8 @@ const (
 // Pool represents a pool of redis connections.
 type Pool interface {
 	// Get returns a connection from the pool.
-	Get() Conn
+	Get() redis.Conn
 }
-
-// Conn is a redis connection, of redigo/redis.Conn interface.
-type Conn = redis.Conn
 
 type redisProvider struct {
 	pool Pool
