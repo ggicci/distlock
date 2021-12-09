@@ -50,7 +50,7 @@ func (p *redisProvider) Lock(lock LockInfo) error {
 	// NX: Only set the key if it does not already exist.
 	reply, err := conn.Do(
 		"SET", lock.GetLockId(), lock.GetLockOwner(),
-		"PX", lock.GetLifeTime().Nanoseconds()/int64(time.Millisecond),
+		"PX", lock.GetLifetime().Nanoseconds()/int64(time.Millisecond),
 		"NX",
 	)
 	if err != nil {

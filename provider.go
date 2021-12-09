@@ -5,8 +5,7 @@ import "time"
 type LockInfo interface {
 	GetLockId() string
 	GetLockOwner() string
-	GetLifeTime() time.Duration
-	GetAcquireTimeout() time.Duration
+	GetLifetime() time.Duration
 }
 
 type Provider interface {

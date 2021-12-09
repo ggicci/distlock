@@ -27,11 +27,7 @@ func (m *mutex) GetLockOwner() string {
 	return m.owner
 }
 
-func (m *mutex) GetAcquireTimeout() time.Duration {
-	return m.acquireTimeout
-}
-
-func (m *mutex) GetLifeTime() time.Duration {
+func (m *mutex) GetLifetime() time.Duration {
 	return m.lifetime
 }
 
@@ -49,13 +45,6 @@ func (f optionFunc) Apply(m *mutex) { f(m) }
 func WithNamespace(ns string) Option {
 	return optionFunc(func(m *mutex) {
 		m.ns = ns
-	})
-}
-
-// WithAcquireTimeout returns an option that configures Mutex.acquireTimeout.
-func WithAcquireTimeout(timeout time.Duration) Option {
-	return optionFunc(func(m *mutex) {
-		m.acquireTimeout = timeout
 	})
 }
 
