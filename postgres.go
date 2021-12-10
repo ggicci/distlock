@@ -56,7 +56,7 @@ func (p *postgreSQLProvider) init() error {
 	return nil
 }
 
-func (p *postgreSQLProvider) Lock(lock LockInfo) error {
+func (p *postgreSQLProvider) Lock(lock NamedLock) error {
 	now := time.Now()
 	expireAt := now.Add(lock.GetLifetime())
 	rs, err := p.lockStmt.Exec(
@@ -72,14 +72,13 @@ func (p *postgreSQLProvider) Lock(lock LockInfo) error {
 	if err != nil {
 		return fmt.Errorf("get affected rows: %w", err)
 	}
-	println("lock affected:", affected)
 	if affected == 0 {
 		return ErrAlreadyLocked
 	}
 	return nil
 }
 
-func (p *postgreSQLProvider) Unlock(lock LockInfo) error {
+func (p *postgreSQLProvider) Unlock(lock NamedLock) error {
 	rs, err := p.unlockStmt.Exec(
 		lock.GetLockId(),
 		lock.GetLockOwner(),
@@ -92,7 +91,6 @@ func (p *postgreSQLProvider) Unlock(lock LockInfo) error {
 	if err != nil {
 		return fmt.Errorf("get affected rows: %w", err)
 	}
-	println("unlock affected:", affected)
 	if affected == 0 {
 		return ErrNotLocked
 	}

@@ -2,7 +2,7 @@ package distlock
 
 import "time"
 
-type LockInfo interface {
+type NamedLock interface {
 	GetLockId() string
 	GetLockOwner() string
 	GetLifetime() time.Duration
@@ -10,8 +10,8 @@ type LockInfo interface {
 
 type Provider interface {
 	Name() string
-	Lock(info LockInfo) error
-	Unlock(info LockInfo) error
+	Lock(info NamedLock) error
+	Unlock(info NamedLock) error
 }
 
 type Mutex interface {

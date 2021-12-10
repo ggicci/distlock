@@ -17,17 +17,17 @@ const (
 	`
 )
 
-// Pool represents a pool of redis connections.
-type Pool interface {
+// RedisPool represents a pool of redis connections.
+type RedisPool interface {
 	// Get returns a connection from the pool.
 	Get() redis.Conn
 }
 
 type redisProvider struct {
-	pool Pool
+	pool RedisPool
 }
 
-func NewRedisProvider(redisPool Pool) (Provider, error) {
+func NewRedisProvider(redisPool RedisPool) (Provider, error) {
 	return &redisProvider{
 		pool: redisPool,
 	}, nil
@@ -37,7 +37,7 @@ func (p *redisProvider) Name() string {
 	return "redis"
 }
 
-func (p *redisProvider) Lock(lock LockInfo) error {
+func (p *redisProvider) Lock(lock NamedLock) error {
 	conn := p.pool.Get()
 	defer conn.Close()
 
@@ -59,7 +59,7 @@ func (p *redisProvider) Lock(lock LockInfo) error {
 	return ErrAlreadyLocked
 }
 
-func (p *redisProvider) Unlock(lock LockInfo) error {
+func (p *redisProvider) Unlock(lock NamedLock) error {
 	conn := p.pool.Get()
 	defer conn.Close()
 

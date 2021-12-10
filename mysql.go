@@ -63,7 +63,7 @@ func (p *mysqlProvider) init() error {
 	return nil
 }
 
-func (p *mysqlProvider) Lock(lock LockInfo) error {
+func (p *mysqlProvider) Lock(lock NamedLock) error {
 	now := time.Now()
 	expireAt := now.Add(lock.GetLifetime())
 	rs, err := p.lockStmt.Exec(
@@ -86,7 +86,7 @@ func (p *mysqlProvider) Lock(lock LockInfo) error {
 	return nil
 }
 
-func (p *mysqlProvider) Unlock(lock LockInfo) error {
+func (p *mysqlProvider) Unlock(lock NamedLock) error {
 	rs, err := p.unlockStmt.Exec(
 		lock.GetLockId(),
 		lock.GetLockOwner(),
