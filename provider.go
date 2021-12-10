@@ -3,8 +3,8 @@ package distlock
 import "time"
 
 type NamedLock interface {
-	GetLockId() string
-	GetLockOwner() string
+	GetId() string
+	GetOwner() string
 	GetLifetime() time.Duration
 }
 

@@ -41,14 +41,28 @@ func (p *redisProvider) Lock(lock NamedLock) error {
 	conn := p.pool.Get()
 	defer conn.Close()
 
-	// SET key value PX milliseconds NX
-	// PX: Set the specified expire time, in milliseconds.
-	// NX: Only set the key if it does not already exist.
-	reply, err := conn.Do(
-		"SET", lock.GetLockId(), lock.GetLockOwner(),
-		"PX", lock.GetLifetime().Nanoseconds()/int64(time.Millisecond),
-		"NX",
+	var (
+		reply interface{}
+		err   error
 	)
+
+	lifetime := lock.GetLifetime()
+	if lifetime > 0 {
+		// SET key value PX milliseconds NX
+		// PX: Set the specified expire time, in milliseconds.
+		// NX: Only set the key if it does not already exist.
+		reply, err = conn.Do(
+			"SET", lock.GetId(), lock.GetOwner(),
+			"PX", lock.GetLifetime().Nanoseconds()/int64(time.Millisecond),
+			"NX",
+		)
+	} else { // never expire
+		reply, err = conn.Do(
+			"SET", lock.GetId(), lock.GetOwner(),
+			"NX",
+		)
+	}
+
 	if err != nil {
 		return fmt.Errorf("redis SET: %w", err)
 	}
@@ -64,7 +78,7 @@ func (p *redisProvider) Unlock(lock NamedLock) error {
 	defer conn.Close()
 
 	command := redis.NewScript(1, unlockScript)
-	ret, err := redis.Int(command.Do(conn, lock.GetLockId(), lock.GetLockOwner()))
+	ret, err := redis.Int(command.Do(conn, lock.GetId(), lock.GetOwner()))
 	if err != nil {
 		return fmt.Errorf("redis EVAL: %w", err)
 	}

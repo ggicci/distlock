@@ -15,10 +15,10 @@ const (
 
 	mysqlLockSQL = `INSERT INTO %s (id, owner, expire_at) VALUES (?, ?, ?)
 	ON DUPLICATE KEY UPDATE
-	owner = IF(expire_at < ?, VALUES(owner), owner),
-	expire_at = IF(expire_at < ?, VALUES(expire_at), expire_at);`
+	owner = IF(expire_at > 0 AND expire_at < ?, VALUES(owner), owner),
+	expire_at = IF(expire_at > 0 AND expire_at < ?, VALUES(expire_at), expire_at);`
 
-	mysqlUnlockSQL = `DELETE FROM %s WHERE id = ? AND owner = ? AND expire_at >= ?;`
+	mysqlUnlockSQL = `DELETE FROM %s WHERE id = ? AND owner = ? AND (expire_at = 0 OR expire_at >= ?);`
 )
 
 type mysqlProvider struct {
@@ -65,11 +65,10 @@ func (p *mysqlProvider) init() error {
 
 func (p *mysqlProvider) Lock(lock NamedLock) error {
 	now := time.Now()
-	expireAt := now.Add(lock.GetLifetime())
 	rs, err := p.lockStmt.Exec(
-		lock.GetLockId(),
-		lock.GetLockOwner(),
-		expireAt.UnixNano(),
+		lock.GetId(),
+		lock.GetOwner(),
+		computeExpireAt(now, lock.GetLifetime()),
 		now.UnixNano(),
 		now.UnixNano(),
 	)
@@ -88,8 +87,8 @@ func (p *mysqlProvider) Lock(lock NamedLock) error {
 
 func (p *mysqlProvider) Unlock(lock NamedLock) error {
 	rs, err := p.unlockStmt.Exec(
-		lock.GetLockId(),
-		lock.GetLockOwner(),
+		lock.GetId(),
+		lock.GetOwner(),
 		time.Now().UnixNano(),
 	)
 	if err != nil {
@@ -107,4 +106,11 @@ func (p *mysqlProvider) Unlock(lock NamedLock) error {
 
 func formatSQL(sqlTemplate, tableName string) string {
 	return fmt.Sprintf(sqlTemplate, tableName)
+}
+
+func computeExpireAt(now time.Time, lifetime time.Duration) int64 {
+	if lifetime == 0 {
+		return 0 // never expire
+	}
+	return now.Add(lifetime).UnixNano()
 }

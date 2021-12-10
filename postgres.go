@@ -15,9 +15,10 @@ const (
 
 	pgLockSQL = `INSERT INTO %s AS t (id, owner, expire_at) VALUES ($1, $2, $3)
 	ON CONFLICT (id) DO UPDATE
-	SET owner = $2, expire_at = $3 WHERE t.id = $1 AND t.expire_at < $4;`
+	SET owner = $2, expire_at = $3
+	WHERE t.id = $1 AND t.expire_at > 0 AND t.expire_at < $4;`
 
-	pgUnlockSQL = `DELETE FROM %s WHERE id = $1 AND owner = $2 AND expire_at >= $3;`
+	pgUnlockSQL = `DELETE FROM %s WHERE id = $1 AND owner = $2 AND (expire_at = 0 OR expire_at >= $3);`
 )
 
 type postgreSQLProvider mysqlProvider
@@ -58,11 +59,10 @@ func (p *postgreSQLProvider) init() error {
 
 func (p *postgreSQLProvider) Lock(lock NamedLock) error {
 	now := time.Now()
-	expireAt := now.Add(lock.GetLifetime())
 	rs, err := p.lockStmt.Exec(
-		lock.GetLockId(),
-		lock.GetLockOwner(),
-		expireAt.UnixNano(),
+		lock.GetId(),
+		lock.GetOwner(),
+		computeExpireAt(now, lock.GetLifetime()),
 		now.UnixNano(),
 	)
 	if err != nil {
@@ -80,8 +80,8 @@ func (p *postgreSQLProvider) Lock(lock NamedLock) error {
 
 func (p *postgreSQLProvider) Unlock(lock NamedLock) error {
 	rs, err := p.unlockStmt.Exec(
-		lock.GetLockId(),
-		lock.GetLockOwner(),
+		lock.GetId(),
+		lock.GetOwner(),
 		time.Now().UnixNano(),
 	)
 	if err != nil {

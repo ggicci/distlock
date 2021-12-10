@@ -25,7 +25,17 @@ var (
 	}
 )
 
+func cleanupRedis() {
+	conn := redisPool.Get()
+	defer conn.Close()
+
+	conn.Do("FLUSHDB")
+}
+
 func TestRedisProvider(t *testing.T) {
+	cleanupRedis()
+
 	provider, _ := NewRedisProvider(redisPool)
-	runBasicLockTests(t, provider)
+	runLockTestsWithLifetime(t, provider)
+	runLockTestsWithoutLifetime(t, provider)
 }

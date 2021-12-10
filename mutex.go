@@ -18,11 +18,11 @@ func (m *mutex) lockId() string {
 	return m.ns + ":" + m.id
 }
 
-func (m *mutex) GetLockId() string {
+func (m *mutex) GetId() string {
 	return m.lockId()
 }
 
-func (m *mutex) GetLockOwner() string {
+func (m *mutex) GetOwner() string {
 	return m.owner
 }
 
@@ -71,7 +71,7 @@ func newMutex(provider Provider, id string, opts ...Option) Mutex {
 
 // String implements print interface.
 func (m *mutex) String() string {
-	return "Mutex(" + m.provider.Name() + ":" + m.GetLockId() + ")"
+	return "Mutex(" + m.provider.Name() + ":" + m.GetId() + ")"
 }
 
 // Lock locks the named resourc

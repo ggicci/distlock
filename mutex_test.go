@@ -8,7 +8,23 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func runBasicLockTests(t *testing.T, provider Provider) {
+func runLockTestsWithoutLifetime(t *testing.T, provider Provider) {
+	factory := New(provider, WithNamespace("deadlock"))
+	m1 := factory.New("build-images")
+	m2 := factory.New("build-images")
+	m3 := factory.New("start-containers")
+
+	assert.NoError(t, m1.Lock())
+	assert.ErrorIs(t, m1.Lock(), ErrAlreadyLocked)
+	assert.ErrorIs(t, m2.Lock(), ErrAlreadyLocked)
+	assert.NoError(t, m3.Lock())
+
+	assert.NoError(t, m1.Unlock())
+	assert.ErrorIs(t, m2.Unlock(), ErrNotLocked)
+	assert.NoError(t, m3.Unlock())
+}
+
+func runLockTestsWithLifetime(t *testing.T, provider Provider) {
 	factory := New(provider, WithLockLifetime(1*time.Second))
 	m := factory.New("johndoe", WithNamespace("questions"))
 	expectedMutexDisplayName := fmt.Sprintf("Mutex(%s:questions:johndoe)", provider.Name())
@@ -51,7 +67,7 @@ func testLockContention(t *testing.T, m Mutex) {
 func testUnlockAfterOwnerChange(t *testing.T, m1, m2 Mutex) {
 	assert.NoError(t, m1.Lock())
 	assert.ErrorIs(t, m2.Lock(), ErrAlreadyLocked)
-	time.Sleep(10 * time.Millisecond) // m1 expired (released by system)
+	time.Sleep(50 * time.Millisecond) // m1 expired (released by system)
 	assert.NoError(t, m2.Lock())      // m2 can obtain the lock, since m1 is expired
 	assert.ErrorIs(t, m1.Unlock(), ErrNotLocked)
 }
