@@ -1,6 +1,6 @@
 # distlock
 
-[![Go](https://github.com/ggicci/distlock/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/ggicci/distlock/actions/workflows/go.yml) [![codecov](https://codecov.io/gh/ggicci/distlock/branch/master/graph/badge.svg?token=2MDBW1V2TI)](https://codecov.io/gh/ggicci/distlock) [![Go Reference](https://pkg.go.dev/badge/github.com/ggicci/distlock.svg)](https://pkg.go.dev/github.com/ggicci/distlock)
+[![Go](https://github.com/ggicci/distlock/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/ggicci/distlock/actions/workflows/go.yml) [![codecov](https://codecov.io/gh/ggicci/distlock/branch/main/graph/badge.svg?token=2MDBW1V2TI)](https://codecov.io/gh/ggicci/distlock) [![Go Reference](https://pkg.go.dev/badge/github.com/ggicci/distlock.svg)](https://pkg.go.dev/github.com/ggicci/distlock)
 
 **Distributed Locks implementation in Go**.
 
@@ -11,7 +11,7 @@
 3. Can work with multiple backends:
    - [x] Redis
    - [x] MySQL
-   - [ ] Postgres
+   - [x] PostgreSQL
 
 ## Usage
 

@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func runBasicLockTests(t *testing.T, provider Provider) {
-	var (
-		err error
-		m   = New(provider, WithLockLifetime(1*time.Second)).
-			New("johndoe", WithNamespace("questions"))
-	)
+	factory := New(provider, WithLockLifetime(1*time.Second))
+	m := factory.New("johndoe", WithNamespace("questions"))
 	expectedMutexDisplayName := fmt.Sprintf("Mutex(%s:questions:johndoe)", provider.Name())
 	gotMutexDisplayName := m.String()
 	if gotMutexDisplayName != expectedMutexDisplayName {
@@ -21,42 +20,38 @@ func runBasicLockTests(t *testing.T, provider Provider) {
 		)
 	}
 
-	err = m.Lock()
-	if err != nil {
-		t.Errorf("Lock failed: name=%s, err=%v", m, err)
-	}
-	err = m.Unlock()
-	if err != nil {
-		t.Errorf("Unlock failed: name=%s, err=%v", m, err)
-	}
+	testLockAndUnlockInTime(t, m)
+	testUnlockAfterAnExpiredLock(t, m)
+	testLockContention(t, m)
 
-	err = m.Lock()
-	if err != nil {
-		t.Errorf("Lock failed: name=%s, err=%v", m, err)
-	}
+	m1 := factory.New("apple", WithLockLifetime(10*time.Millisecond))
+	m2 := factory.New("apple", WithLockLifetime(100*time.Millisecond))
+	testUnlockAfterOwnerChange(t, m1, m2)
+}
 
-	// Here unlock should fail because lock was released by lifetime.
-	time.Sleep(1200 * time.Millisecond)
-	err = m.Unlock()
-	if err == nil {
-		t.Errorf("unlock should fail")
-	}
+func testLockAndUnlockInTime(t *testing.T, m Mutex) {
+	assert.NoError(t, m.Lock())
+	assert.NoError(t, m.Unlock())
+	// expectLocked(t, m.Lock())
+	// expectUnlocked(t, m.Unlock())
+}
 
-	m.Lock()
-	// Here lock should fail.
-	err = m.Lock()
-	if err == nil {
-		t.Errorf("lock should fail")
-	}
-	err = m.Unlock()
-	if err != nil {
-		t.Errorf("Unlock failed: name=%s, err=%v", m, err)
-	}
+func testUnlockAfterAnExpiredLock(t *testing.T, m Mutex) {
+	assert.NoError(t, m.Lock())
+	time.Sleep(1200 * time.Millisecond) // expired (released by system)
+	assert.ErrorIs(t, m.Unlock(), ErrNotLocked)
+}
 
-	m.Lock()
-	m.(*mutex).id = "2814"
-	err = m.Unlock()
-	if err == nil {
-		t.Errorf("unlock should fail")
-	}
+func testLockContention(t *testing.T, m Mutex) {
+	assert.NoError(t, m.Lock())
+	assert.ErrorIs(t, m.Lock(), ErrAlreadyLocked)
+	assert.NoError(t, m.Unlock())
+}
+
+func testUnlockAfterOwnerChange(t *testing.T, m1, m2 Mutex) {
+	assert.NoError(t, m1.Lock())
+	assert.ErrorIs(t, m2.Lock(), ErrAlreadyLocked)
+	time.Sleep(10 * time.Millisecond) // m1 expired (released by system)
+	assert.NoError(t, m2.Lock())      // m2 can obtain the lock, since m1 is expired
+	assert.ErrorIs(t, m1.Unlock(), ErrNotLocked)
 }

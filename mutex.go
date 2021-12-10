@@ -6,11 +6,10 @@ import (
 )
 
 type mutex struct {
-	ns             string // namespace, as prefix for the lock name
-	id             string
-	owner          string
-	acquireTimeout time.Duration
-	lifetime       time.Duration
+	ns       string // namespace, as prefix for the lock name
+	id       string
+	owner    string
+	lifetime time.Duration
 
 	provider Provider
 }
@@ -58,10 +57,9 @@ func WithLockLifetime(lifetime time.Duration) Option {
 // NewMutex creates a new Mutex instance.
 func newMutex(provider Provider, id string, opts ...Option) Mutex {
 	m := &mutex{
-		id:             id,
-		acquireTimeout: time.Duration(0),
-		owner:          strconv.FormatInt(time.Now().UnixNano(), 10),
-		provider:       provider,
+		id:       id,
+		owner:    strconv.FormatInt(time.Now().UnixNano(), 10),
+		provider: provider,
 	}
 
 	WithNamespace("default").Apply(m)
