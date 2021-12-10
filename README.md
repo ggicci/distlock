@@ -2,13 +2,17 @@
 
 [![Go](https://github.com/ggicci/distlock/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/ggicci/distlock/actions/workflows/go.yml) [![codecov](https://codecov.io/gh/ggicci/distlock/branch/main/graph/badge.svg?token=2MDBW1V2TI)](https://codecov.io/gh/ggicci/distlock) [![Go Reference](https://pkg.go.dev/badge/github.com/ggicci/distlock.svg)](https://pkg.go.dev/github.com/ggicci/distlock)
 
-**Distributed Locks implementation in Go**.
+<div align="center">
+   <b>Distributed Locks</b> implementation in Go
+   <div>backed on</div>
+   <div>Redis, MySQL, PostgreSQL, etc.</div>
+</div>
 
 ## Features
 
 1. Namespace (names in the same namespace are unique, default namespace is `"default"`)
 2. Auto/No expiration (auto-released after a specific time or never expire)
-3. Can work with multiple backends:
+3. Support multiple backends:
    - [x] Redis
    - [x] MySQL
    - [x] PostgreSQL
