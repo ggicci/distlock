@@ -3,9 +3,9 @@
 [![Go](https://github.com/ggicci/distlock/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/ggicci/distlock/actions/workflows/go.yml) [![codecov](https://codecov.io/gh/ggicci/distlock/branch/main/graph/badge.svg?token=2MDBW1V2TI)](https://codecov.io/gh/ggicci/distlock) [![Go Reference](https://pkg.go.dev/badge/github.com/ggicci/distlock.svg)](https://pkg.go.dev/github.com/ggicci/distlock)
 
 <div align="center">
-   <b>Distributed Locks</b> implementation in Go
+   <b>Named Database Locks</b> in Go
    <div>backed on</div>
-   <div>Redis, MySQL, PostgreSQL, etc.</div>
+   <div>Redis, MySQL, PostgreSQL, MongoDB etc.</div>
 </div>
 
 ## Features
@@ -16,6 +16,7 @@
    - [x] Redis
    - [x] MySQL
    - [x] PostgreSQL
+   - [ ] MongoDB
 
 ## Usage
 
