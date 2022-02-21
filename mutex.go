@@ -1,3 +1,5 @@
+// distlock provides simple distributed locks using redis, mysql, postgresql,
+// mongodb, etc.
 package distlock
 
 import (
